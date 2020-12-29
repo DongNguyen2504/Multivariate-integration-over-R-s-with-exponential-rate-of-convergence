@@ -1,3 +1,8 @@
+// Example 1 from the paper 
+//"Nguyen, D. T. P., and Nuyens, D. Multivariate integration over $R^s$ with exponential rate of convergence. 
+//Journal of Computational and Applied Mathematics 315 (2017), 327–342."
+
+
 #include <iostream>
 #include <fstream>
 #include <cmath>
