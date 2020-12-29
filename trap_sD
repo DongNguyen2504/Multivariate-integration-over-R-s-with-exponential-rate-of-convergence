@@ -1,0 +1,119 @@
+#include <iostream>
+#include <cmath>
+#include <limits>
+#include <cstdlib> // for std::size_t
+
+#include <boost/multiprecision/cpp_dec_float.hpp>
+//typedef boost::multiprecision::cpp_dec_float_100 my_float_t;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_dec_float<20>> my_float_t;
+//typedef long double my_float_t; // type for numerical computations
+#include <boost/math/constants/constants.hpp>
+
+template <typename T>
+bool parse(const char* s, T& value, bool throwexception=false)
+{
+    // this is not the best solution see: http://stackoverflow.com/questions/194465/how-to-parse-a-string-to-an-int-in-c
+    std::stringstream ss(s);
+    ss >> value;
+    if(ss.fail() || !ss.eof()) {
+        if(throwexception) throw std::invalid_argument("Could not parse input");
+        return false;
+    }
+    return true;
+}
+
+T trapz(const Function& f, const int& s, const std::vector<T>& a, const std::vector<T>& b, const std::vector<T>& h, const std::vector<int>& N)
+{
+    using std::fmod;
+    T acc = 0.;
+    int prodN =1;
+    int i;
+    
+    for (i = 0; i < s; ++i){
+     prodN = prodN*N[i];
+    }
+    
+    
+    std::vector<int> m(s);
+    m[0] = 1;
+    for (i = 1; i < s; ++i){
+     m[i] = m[i-1]*N[i-1];
+    } 
+    
+    int ij ;
+    std::vector<T> xtemp(s);
+    
+    for (int k = 0; k< prodN ; ++k){
+        for(int j =0 ; j < s; ++j){
+           ij = fmod(floor(k/m[j]) , N[j]);
+           xtemp[j] = a[j] + h[j]*ij;         
+        }
+        acc += f(xtemp);
+    }
+    
+    T prodh =1.;
+    
+    for (i = 0; i < s; ++i){
+     prodh = prodh*h[i];
+    }
+      	
+    return prodh*acc;
+}
+
+my_float_t expminusx2(const std::vector<my_float_t>& x)
+{
+    using std::exp;
+    my_float_t temp=0.;
+    for (unsigned int i = 0; i < x.size(); ++i){
+     temp += x[i]*x[i];
+    }
+    
+    return exp(-temp);
+}
+
+int main(int argc, char *argv[])
+{
+    using boost::math::constants::pi;
+    using std::sqrt;
+    using std::abs;
+   
+    std::size_t n = 1e4;
+    
+    if(argc > 1) parse(argv[1], n, true);
+    
+    int s = 8;
+    my_float_t lambda = 0.8;
+    std::vector <int> nt(s,   floor( (pow(n,1./s) -1.)/2.) );
+    
+    std::vector <int> vn(s, 2*floor( (pow(n,1./s) -1.)/2.) +1);
+    
+    std::vector <my_float_t> h(s, sqrt(pi<my_float_t>() *2.*pow(n,-1./s)/lambda));
+        
+    std::vector <my_float_t> a(s);
+    std::vector <my_float_t> b(s);   
+        
+    for (int i = 0; i < s; ++i){
+     a[i] = nt[i]*-h[i];
+
+    }
+    for (int i = 0; i < s; ++i){
+     b[i] = nt[i]*h[i];
+    }
+    
+    //std::cout << "h (0) = " << h[0] << std::endl;
+    std::cout << "vn (0) = " << vn[0] << std::endl;
+    
+    
+    my_float_t Ntotal = std::accumulate(vn.begin(), vn.end(), 1, std::multiplies<int>());
+    my_float_t exact = pow(sqrt(pi<my_float_t>()),s);
+    my_float_t calculated = trapz<my_float_t>(expminusx2, s, a , b, h, vn);
+    
+    std::cout << "n      = " << n  << std::endl;
+    std::cout << "Number of points used      = " <<Ntotal << std::endl;
+    std::cout << std::setprecision(std::numeric_limits<my_float_t>::max_digits10) << std::scientific;
+    //std::cout << "calculated value = " << calculated << std::endl;
+    //std::cout << "exact value      = " << exact << std::endl;
+    std::cout << "relative error   = " << std::setprecision(10) << abs(calculated - exact)/exact << std::endl;
+    std::cerr << std::setw(20) << Ntotal << "\t" << abs(calculated - exact)/exact << "\t" << exp(-pow(Ntotal,1./s)) <<std::endl;
+    return 0;
+}
