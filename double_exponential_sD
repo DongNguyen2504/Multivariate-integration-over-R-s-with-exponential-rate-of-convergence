@@ -1,3 +1,9 @@
+// Example 2 from the paper 
+//"Nguyen, D. T. P., and Nuyens, D. Multivariate integration over $R^s$ with exponential rate of convergence. 
+//Journal of Computational and Applied Mathematics 315 (2017), 327–342."
+
+
+
 #include <iostream>
 #include <cmath>
 #include <limits>
@@ -22,9 +28,6 @@ bool parse(const char* s, T& value, bool throwexception=false)
     return true;
 }
 
-// any function like type through template
-
-template <typename T, typename T2=T, typename Function> // if it quacks like a duck it's a duck
 T trapz(const Function& f, const int& s, const std::vector<T>& a, const std::vector<T>& b, const std::vector<T>& h, const std::vector<int>& N)
 {
     using std::fmod;
