@@ -1,0 +1,408 @@
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <limits>
+#include <cstdlib> // for std::size_t
+#include <boost/numeric/interval.hpp>
+
+#include <boost/multiprecision/cpp_dec_float.hpp>
+//typedef boost::multiprecision::cpp_dec_float_100 my_float_t;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_dec_float<50> > my_float_t;
+//typedef long double my_float_t; // type for numerical computations
+#include <boost/math/constants/constants.hpp>
+
+template <typename T>
+bool parse(const char* s, T& value, bool throwexception=false)
+{
+    // this is not the best solution see: http://stackoverflow.com/questions/194465/how-to-parse-a-string-to-an-int-in-c
+    std::stringstream ss(s);
+    ss >> value;
+    if(ss.fail() || !ss.eof()) {
+        if(throwexception) throw std::invalid_argument("Could not parse input");
+        return false;
+    }
+    return true;
+}
+
+T2 tsum(const Function& f, const T& h1, const T& M1, const T& h2, const T& M2, const T& h3, const T& M3, const T& h4, const T& M4, const T& epsilon, T & Ntotal)
+{
+    using boost::math::constants::pi;
+    T2 acc = 0.;
+    T k1 ;
+    T k2 ;
+    T k3 ;
+    T k4 ;
+    T temp;
+    Ntotal = 0.;
+    
+    k4 = 0.;
+    k3 = 0.;
+    k2 = 0.; 
+    k1 = 0.;
+    temp = f(k1,h1,M1,k2,h2,M2,k3,h3,M3,k4,h4,M4);
+    
+    while (abs(temp)>= abs(acc)*epsilon)
+    {
+        while (abs(temp)>= abs(acc)*epsilon)
+        {   
+            while (abs(temp) >= abs(acc)*epsilon)
+            {
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<k1 <<"\t"<< "k2=" << k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,h1,M1,k2,h2,M2,k3,h3,M3,k4,h4,M4);
+                }
+                k1= 1.; 
+                temp = f(k1,-h1,M1,k2,h2,M2,k3,h3,M3,k4,h4,M4);
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<-k1 <<"\t"<< "k2=" << k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,-h1,M1,k2,h2,M2,k3,h3,M3,k4,h4,M4);
+                }
+                k1 = 0.;
+                ++k2;
+                temp = f(k1,h1,M1,k2,h2,M2,k3,h3,M3,k4,h4,M4);
+            }
+    
+    
+            k2 = 1.; 
+            k1 = 0.;  
+            temp = f(k1,h1,M1,k2,-h2,M2,k3,h3,M3,k4,h4,M4); 
+            while (abs(temp) >= abs(acc)*epsilon)
+            {
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<k1 <<"\t"<< "k2=" << -k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,h1,M1,k2,-h2,M2,k3,h3,M3,k4,h4,M4); 
+                }
+                k1= 1.;
+                temp = f(k1,-h1,M1,k2,-h2,M2,k3,h3,M3,k4,h4,M4);
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<-k1 <<"\t"<< "k2=" << -k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,-h1,M1,k2,-h2,M2,k3,h3,M3,k4,h4,M4);
+                }
+                k1 = 0.;
+                ++k2;
+                temp = f(k1,h1,M1,k2,-h2,M2,k3,h3,M3,k4,h4,M4);
+            }
+            k2 = 0.; 
+            k1 = 0.;
+            ++k3;
+            temp = f(k1,h1,M1,k2,h2,M2,k3,h3,M3,k4,h4,M4);
+        
+        }
+    
+        k3 = 1.;
+        k2 = 0.; 
+        k1 = 0.;
+        temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,h4,M4);    
+        while (abs(temp)>= abs(acc)*epsilon)
+        {      
+            while (abs(temp) >= abs(acc)*epsilon)
+            {
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<k1 <<"\t"<< "k2=" << k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,h4,M4);  
+                }
+                k1= 1.;
+                temp = f(k1,-h1,M1,k2,h2,M2,k3,-h3,M3,k4,h4,M4);
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<-k1 <<"\t"<< "k2=" << k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,-h1,M1,k2,h2,M2,k3,-h3,M3,k4,h4,M4);
+                }
+                k1 = 0.;
+                ++k2;
+                temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,h4,M4);              
+            }
+    
+            k2 = 1.; 
+            k1 = 0.;
+            temp = f(k1,h1,M1,k2,-h2,M2,k3,-h3,M3,k4,h4,M4);   
+            while (abs(temp) >= abs(acc)*epsilon)
+            {
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<k1 <<"\t"<< "k2=" << -k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,h1,M1,k2,-h2,M2,k3,-h3,M3,k4,h4,M4); 
+                }
+                k1= 1.;
+                temp = f(k1,-h1,M1,k2,-h2,M2,k3,-h3,M3,k4,h4,M4);
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<-k1 <<"\t"<< "k2=" << -k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,-h1,M1,k2,-h2,M2,k3,-h3,M3,k4,h4,M4);
+                }
+                k1 = 0.;
+                ++k2;
+                temp = f(k1,h1,M1,k2,-h2,M2,k3,-h3,M3,k4,h4,M4);    
+            }
+            k2 = 0.; 
+            k1 = 0.;
+            ++k3;
+            temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,h4,M4);
+        }
+        k3 =0.;
+        k2 =0.;
+        k1 =0.;
+        ++k4;
+        temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,h4,M4);
+     }
+     
+     
+    k4 = 1.;
+    k3 = 0.;
+    k2 = 0.; 
+    k1 = 0.;
+    temp = f(k1,h1,M1,k2,h2,M2,k3,h3,M3,k4,-h4,M4);
+    
+    while (abs(temp)>= abs(acc)*epsilon)
+    {
+        while (abs(temp)>= abs(acc)*epsilon)
+        {   
+            while (abs(temp) >= abs(acc)*epsilon)
+            {
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<k1 <<"\t"<< "k2=" << k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,h1,M1,k2,h2,M2,k3,h3,M3,k4,-h4,M4);
+                }
+                k1= 1.; 
+                temp = f(k1,-h1,M1,k2,h2,M2,k3,h3,M3,k4,-h4,M4);
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<-k1 <<"\t"<< "k2=" << k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,-h1,M1,k2,h2,M2,k3,h3,M3,k4,-h4,M4);
+                }
+                k1 = 0.;
+                ++k2;
+                temp = f(k1,h1,M1,k2,h2,M2,k3,h3,M3,k4,-h4,M4);
+            }
+    
+    
+            k2 = 1.; 
+            k1 = 0.;  
+            temp = f(k1,h1,M1,k2,-h2,M2,k3,h3,M3,k4,-h4,M4); 
+            while (abs(temp) >= abs(acc)*epsilon)
+            {
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<k1 <<"\t"<< "k2=" << -k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,h1,M1,k2,-h2,M2,k3,h3,M3,k4,-h4,M4); 
+                }
+                k1= 1.;
+                temp = f(k1,-h1,M1,k2,-h2,M2,k3,h3,M3,k4,-h4,M4);
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<-k1 <<"\t"<< "k2=" << -k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,-h1,M1,k2,-h2,M2,k3,h3,M3,k4,-h4,M4);
+                }
+                k1 = 0.;
+                ++k2;
+                temp = f(k1,h1,M1,k2,-h2,M2,k3,h3,M3,k4,-h4,M4);
+            }
+            k2 = 0.; 
+            k1 = 0.;
+            ++k3;
+            temp = f(k1,h1,M1,k2,h2,M2,k3,h3,M3,k4,-h4,M4);
+        
+        }
+    
+        k3 = 1.;
+        k2 = 0.; 
+        k1 = 0.;
+        temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,-h4,M4);    
+        while (abs(temp)>= abs(acc)*epsilon)
+        {      
+            while (abs(temp) >= abs(acc)*epsilon)
+            {
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<k1 <<"\t"<< "k2=" << k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,-h4,M4);  
+                }
+                k1= 1.;
+                temp = f(k1,-h1,M1,k2,h2,M2,k3,-h3,M3,k4,-h4,M4);
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<-k1 <<"\t"<< "k2=" << k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,-h1,M1,k2,h2,M2,k3,-h3,M3,k4,-h4,M4);
+                }
+                k1 = 0.;
+                ++k2;
+                temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,-h4,M4);              
+            }
+    
+            k2 = 1.; 
+            k1 = 0.;
+            temp = f(k1,h1,M1,k2,-h2,M2,k3,-h3,M3,k4,-h4,M4);   
+            while (abs(temp) >= abs(acc)*epsilon)
+            {
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<k1 <<"\t"<< "k2=" << -k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,h1,M1,k2,-h2,M2,k3,-h3,M3,k4,-h4,M4); 
+                }
+                k1= 1.;
+                temp = f(k1,-h1,M1,k2,-h2,M2,k3,-h3,M3,k4,-h4,M4);
+                while ( abs(temp) >= abs(acc)*epsilon )
+                {
+                    ++Ntotal;
+                    acc+=temp;
+                    //std::cout<< "k1=" <<-k1 <<"\t"<< "k2=" << -k2 <<std::endl;
+                    ++k1;
+                    temp = f(k1,-h1,M1,k2,-h2,M2,k3,-h3,M3,k4,-h4,M4);
+                }
+                k1 = 0.;
+                ++k2;
+                temp = f(k1,h1,M1,k2,-h2,M2,k3,-h3,M3,k4,-h4,M4);    
+            }
+            k2 = 0.; 
+            k1 = 0.;
+            ++k3;
+            temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,-h4,M4);
+        }
+        k3 =0.;
+        k2 =0.;
+        k1 =0.;
+        ++k4;
+        temp = f(k1,h1,M1,k2,h2,M2,k3,-h3,M3,k4,-h4,M4);
+        }
+        
+        
+    return acc;
+}
+
+my_float_t An(my_float_t n, my_float_t h, my_float_t M, my_float_t alpha, my_float_t beta)
+{
+    using std::exp;
+    using boost::math::constants::pi;
+    return pi<my_float_t>()*n /(1. - exp(-2.*n*h - alpha*(1.-exp(-n*h)) - beta*(exp(n*h)-1.)));
+
+}
+
+my_float_t dphi(my_float_t u, my_float_t alpha, my_float_t beta)
+{
+    using boost::math::constants::pi;
+    using std::exp;
+    using std::pow;
+    return  u*exp(-alpha*(1.-exp(-u)) -beta*(exp(u)-1.) -2.*u)*(-alpha*exp(-u)-beta*exp(u)-2.)/pow((1. - exp(-2.*u - alpha*(1.-exp(-u)) - beta*(exp(u)-1.))),2.) + 1./(1. - exp(-2.*u - alpha*(1.-exp(-u)) - beta*(exp(u)-1.))) ;
+}
+
+my_float_t Bn(my_float_t n, my_float_t h, my_float_t M, my_float_t alpha, my_float_t beta)
+{
+    using boost::math::constants::pi;
+    using std::exp;
+    using std::pow;
+    //return dphi(n*h,alpha,beta) * sin ( An(n,h,M,alpha,beta));
+    return pow(-1., n) * dphi(n*h,alpha,beta) * sin ( An(n,h,M,alpha,beta) * exp(-2.*n*h - alpha* (1. - exp(-n*h)) - beta *(exp(n*h)-1.)) );
+}
+my_float_t gn(my_float_t n, my_float_t h, my_float_t M)
+{   
+    using boost::math::constants::pi;
+    using std::sin;
+    using std::log;
+    using std::sqrt;
+    my_float_t beta = 1./4.;
+    my_float_t alpha = beta / sqrt(1. + M* log(1.+M)/ (4.*pi<my_float_t>()));
+    if ( n==0.)
+        return pi<my_float_t>() * sin(M/ (alpha + beta +2. ) ) * (alpha*alpha + alpha* (2. *beta +5.) + beta*beta + 3. *beta + 4.) /(2. * M * (alpha+beta +2. ));
+    else
+        return  pi<my_float_t>() * Bn(n,h,M,alpha,beta)/An(n,h,M,alpha,beta);
+}
+
+my_float_t gn4(my_float_t n1, my_float_t h1, my_float_t M1, my_float_t n2, my_float_t h2, my_float_t M2, my_float_t n3, my_float_t h3, my_float_t M3, my_float_t n4, my_float_t h4, my_float_t M4)
+{
+    return gn(n1,h1,M1)*gn(n2,h2,M2)*gn(n3, h3,M3)*gn(n4, h4, M4);
+}
+
+int main(int argc, char *argv[])
+{
+    using boost::math::constants::pi;
+    using std::sqrt;
+    using std::abs;
+    using std::exp;
+    using std::log;
+    using std::pow;
+   
+    my_float_t M = 36.;     
+    if(argc > 1) parse(argv[1], M, true);
+    
+    int s = 4;
+    my_float_t Ntotal;
+    my_float_t M1 = M;
+    my_float_t M2 = M;
+    my_float_t M3 = M;
+    my_float_t M4 = M;
+    my_float_t C  = 4.;
+    
+    my_float_t h1 = pi<my_float_t>()/ M1;
+    my_float_t h2 = pi<my_float_t>()/ M2;
+    my_float_t h3 = pi<my_float_t>()/ M3;
+    my_float_t h4 = pi<my_float_t>()/ M4;
+    
+    my_float_t epsilon = exp(-C*M/pi<my_float_t>());
+    
+    std::cout << "M = " << M << std::endl;
+    std::cout << "Epsilon = " << epsilon << std::endl;
+    
+    
+    
+
+    my_float_t exact = pow( pi<my_float_t>()/2., s);
+    my_float_t calculated = tsum<my_float_t>(gn4, h1, M1, h2, M2, h3, M3, h4, M4, epsilon ,Ntotal);
+    std::cout << "panels used      = " <<Ntotal << std::endl;
+    std::cout << std::setprecision(std::numeric_limits<my_float_t>::max_digits10) << std::scientific;
+    //std::cout << "calculated value = " << calculated << std::endl;
+    //std::cout << "exact value      = " << exact << std::endl;
+    std::cout << "relative error   = " << std::setprecision(10) << abs(calculated - exact)/exact << std::endl;
+    std::cerr << std::setw(20) << Ntotal << "\t" << abs(calculated - exact)/exact << "\t" << exp(-pow(Ntotal, 1./s)/log(Ntotal)) << std::endl;
+    return 0;
+}
